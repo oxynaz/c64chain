@@ -1,0 +1,9 @@
+build/
+*.tar.gz
+*.log
+*.keys
+*.address.txt
+dev_fund*
+stefan*
+src-backups-v12/
+.c64chain/

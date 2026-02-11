@@ -15,6 +15,12 @@ It features a unique Commodore 64-inspired terminal interface with Datasette loa
 - 🎮 **Datasette animation** on startup — press play on tape!
 - ⏱️ **5-minute block time** (300 seconds)
 
+## ⚠️ Current Status: TESTNET
+
+> **C64 Chain is currently in TESTNET phase.** The mainnet has not launched yet.
+> All coins mined on testnet have no value and the blockchain will be reset before mainnet launch.
+> Use `--testnet` flag for all commands.
+
 ## Quick Start
 
 ### Pre-compiled binaries (Ubuntu 24.04 x86_64)

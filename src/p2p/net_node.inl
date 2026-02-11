@@ -733,8 +733,8 @@ namespace nodetool
     std::set<std::string> full_addrs;
     if (m_nettype == cryptonote::TESTNET)
     {
-      full_addrs.insert("86.217.243.230:29640"); // C64 Chain testnet seed (c64seed.ddns.net)
-      // full_addrs.insert("IP_TODO:29640"); // C64 Chain testnet seed2 (c64seed2.ddns.net)
+      full_addrs.insert("163.172.215.129:29640"); // C64 Chain testnet seed1 (c64seed.ddns.net)
+      full_addrs.insert("51.158.152.121:29640"); // C64 Chain testnet seed2 (c64seed2.ddns.net)
     }
     else if (m_nettype == cryptonote::STAGENET)
     {
@@ -744,8 +744,8 @@ namespace nodetool
     }
     else
     {
-      full_addrs.insert("86.217.243.230:19640"); // C64 Chain mainnet seed (c64seed.ddns.net)
-      // full_addrs.insert("IP_TODO:19640"); // C64 Chain mainnet seed2 (c64seed2.ddns.net)
+      full_addrs.insert("163.172.215.129:19640"); // C64 Chain mainnet seed1 (c64seed.ddns.net)
+      full_addrs.insert("51.158.152.121:19640"); // C64 Chain mainnet seed2 (c64seed2.ddns.net)
     }
     return full_addrs;
   }

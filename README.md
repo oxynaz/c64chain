@@ -29,7 +29,8 @@ sudo apt update
 sudo apt install -y build-essential cmake pkg-config libboost-all-dev libssl-dev \
     libzmq3-dev libsodium-dev libunwind-dev liblzma-dev libreadline-dev \
     libexpat1-dev libpgm-dev qttools5-dev-tools libhidapi-dev libusb-1.0-0-dev \
-    libprotobuf-dev protobuf-compiler libudev-dev libncurses5-dev libncursesw5-dev libunbound-dev
+    libprotobuf-dev protobuf-compiler libudev-dev libncurses5-dev libncursesw5-dev \
+    libunbound-dev liblmdb-dev libminiupnpc-dev
 ```
 
 ### 2. Build the node and wallet

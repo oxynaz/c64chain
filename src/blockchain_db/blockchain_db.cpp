@@ -31,6 +31,7 @@
 #include "string_tools.h"
 #include "blockchain_db.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
+#include "cryptonote_config.h"
 #include "profile_tools.h"
 #include "ringct/rctOps.h"
 
@@ -236,7 +237,24 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
       cryptonote::tx_out vout = tx.vout[i];
       rct::key commitment = rct::zeroCommit(vout.amount);
       vout.amount = 0;
-      amount_output_indices[i] = add_output(tx_hash, vout, i, tx.unlock_time,
+
+      // C64 CHAIN: HF19+ vesting - per-output unlock times for coinbase
+      uint64_t output_unlock_time = tx.unlock_time;
+      if (miner_tx && tx.vin.size() == 1 && tx.vin[0].type() == typeid(txin_gen)) {
+        size_t cb_height = boost::get<txin_gen>(tx.vin[0]).height;
+        // Check if this is HF19+ by checking if there are 4+ miner outputs (before dev fund)
+        // Dev fund is the last output, so miner outputs = total - 1 (if dev fund exists)
+        size_t num_miner_outs = tx.vout.size() >= 5 ? 4 : tx.vout.size();  // 4 vesting + dev fund
+        if (num_miner_outs == 4 && i < 4) {
+          static const uint64_t vesting_unlocks[] = {
+            C64_VESTING_UNLOCK_1, C64_VESTING_UNLOCK_2,
+            C64_VESTING_UNLOCK_3, C64_VESTING_UNLOCK_4
+          };
+          output_unlock_time = cb_height + vesting_unlocks[i];
+        }
+      }
+
+      amount_output_indices[i] = add_output(tx_hash, vout, i, output_unlock_time,
         &commitment);
     }
     else

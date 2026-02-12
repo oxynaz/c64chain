@@ -130,20 +130,33 @@ namespace cryptonote
     if (hard_fork_version >= 2 && hard_fork_version < 4) {
       block_reward = block_reward - block_reward % ::config::BASE_REWARD_CLAMP_THRESHOLD;
     }
-
     std::vector<uint64_t> out_amounts;
-    decompose_amount_into_digits(block_reward, hard_fork_version >= 2 ? 0 : ::config::DEFAULT_DUST_THRESHOLD,
-      [&out_amounts](uint64_t a_chunk) { out_amounts.push_back(a_chunk); },
-      [&out_amounts](uint64_t a_dust) { out_amounts.push_back(a_dust); });
+    // C64 CHAIN: HF19+ vesting - split block reward into 4 outputs with staggered unlock
+    std::vector<uint64_t> out_unlock_times;  // per-output unlock times for vesting
+    if (hard_fork_version >= HF_VERSION_VESTING && height > 0) {
+      // Split block_reward into 4 equal parts (remainder goes to first output)
+      uint64_t quarter = block_reward / C64_VESTING_OUTPUTS;
+      uint64_t remainder = block_reward - (quarter * C64_VESTING_OUTPUTS);
+      out_amounts.push_back(quarter + remainder);  // output 0: 25% + dust
+      out_amounts.push_back(quarter);              // output 1: 25%
+      out_amounts.push_back(quarter);              // output 2: 25%
+      out_amounts.push_back(quarter);              // output 3: 25%
+      out_unlock_times.push_back(height + C64_VESTING_UNLOCK_1);  // ~24h
+      out_unlock_times.push_back(height + C64_VESTING_UNLOCK_2);  // ~30 days
+      out_unlock_times.push_back(height + C64_VESTING_UNLOCK_3);  // ~60 days
+      out_unlock_times.push_back(height + C64_VESTING_UNLOCK_4);  // ~90 days
+    } else {
+      // Pre-HF19: original decomposition
+      decompose_amount_into_digits(block_reward, hard_fork_version >= 2 ? 0 : ::config::DEFAULT_DUST_THRESHOLD,
+        [&out_amounts](uint64_t a_chunk) { out_amounts.push_back(a_chunk); },
+        [&out_amounts](uint64_t a_dust) { out_amounts.push_back(a_dust); });
+    }
 
     CHECK_AND_ASSERT_MES(1 <= max_outs, false, "max_out must be non-zero");
     if (height == 0 || hard_fork_version >= 4)
     {
-      // the genesis block was not decomposed, for unknown reasons
       while (max_outs < out_amounts.size())
       {
-        //out_amounts[out_amounts.size() - 2] += out_amounts.back();
-        //out_amounts.resize(out_amounts.size() - 1);
         out_amounts[1] += out_amounts[0];
         for (size_t n = 1; n < out_amounts.size(); ++n)
           out_amounts[n - 1] = out_amounts[n];
@@ -176,7 +189,6 @@ namespace cryptonote
 
       tx_out out;
       cryptonote::set_tx_out(amount, out_eph_public_key, use_view_tags, view_tag, out);
-
       tx.vout.push_back(out);
     }
 

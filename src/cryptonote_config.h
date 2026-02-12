@@ -42,6 +42,15 @@
 #define CRYPTONOTE_MAX_TX_PER_BLOCK                     0x10000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2         288
+
+// C64 CHAIN: Vesting schedule for block rewards (HF19+)
+// Block reward is split into 4 equal outputs with staggered unlock times
+#define C64_VESTING_OUTPUTS                              4
+#define C64_VESTING_UNLOCK_1                             288      // ~24h - immediate (same as base unlock)
+#define C64_VESTING_UNLOCK_2                             8640     // ~30 days
+#define C64_VESTING_UNLOCK_3                             17280    // ~60 days
+#define C64_VESTING_UNLOCK_4                             25920    // ~90 days
+#define HF_VERSION_VESTING                               19
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
 #define CURRENT_TRANSACTION_VERSION                     2
 #define CURRENT_BLOCK_MAJOR_VERSION                     17
@@ -54,8 +63,8 @@
 #define BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW               60
 
 // MONEY_SUPPLY - total number coins to be generated
-#define MONEY_SUPPLY                                    ((uint64_t)(-1))
-#define EMISSION_SPEED_FACTOR_PER_MINUTE                (24)
+#define MONEY_SUPPLY                                    ((uint64_t)1964000000000000000ULL) // 19,640,000 C64 (1964 = C64 year)
+#define EMISSION_SPEED_FACTOR_PER_MINUTE                (21)
 #define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)(0)) // 0
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100

@@ -84,9 +84,21 @@ namespace cryptonote {
     static_assert(DIFFICULTY_TARGET_V2%60==0&&DIFFICULTY_TARGET_V1%60==0,"difficulty targets must be a multiple of 60");
     const int target = version < 2 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2;
     const int target_minutes = target / 60;
-    const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
-
-    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) >> emission_speed_factor;
+    // C64 CHAIN: HF19 changes supply to 19,640,000 and emission speed to 21
+    uint64_t money_supply;
+    int emission_speed_factor;
+    if (version >= HF_VERSION_VESTING) {
+      money_supply = MONEY_SUPPLY;  // 19,640,000 C64
+      emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
+    } else {
+      money_supply = (uint64_t)(-1);  // old unlimited supply
+      emission_speed_factor = 24 - (target_minutes-1);  // old ESF=24
+    }
+    if (already_generated_coins >= money_supply) {
+      reward = FINAL_SUBSIDY_PER_MINUTE * target_minutes;
+      return true;
+    }
+    uint64_t base_reward = (money_supply - already_generated_coins) >> emission_speed_factor;
     if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
     {
       base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;

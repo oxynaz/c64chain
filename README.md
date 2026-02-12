@@ -97,10 +97,15 @@ See the [C64 Miner](https://github.com/oxynaz/c64miner) repository for mining in
 - c64seed.ddns.net (163.172.215.129)
 - c64seed2.ddns.net (51.158.152.121)
 
+## Block Explorer
+
+- **[c64chain.com](https://c64chain.com)** — search blocks, transactions, network stats
+
 ## Community
 
 - Discord: [discord.gg/MTRgHT8r45](https://discord.gg/MTRgHT8r45)
 - GitHub: [github.com/oxynaz](https://github.com/oxynaz)
+- Block Explorer: [c64chain.com](https://c64chain.com)
 
 ## Credits & License
 

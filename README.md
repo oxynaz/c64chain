@@ -1,6 +1,6 @@
 # C64 Chain
 
-![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.4-blue)
+![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.5-blue)
 
 **C64 Chain** is a privacy-focused, CPU-mineable cryptocurrency inspired by the Commodore 64.
 Forked from [Wownero](https://codeberg.org/wownero/wownero) (itself a fork of Monero).
@@ -13,6 +13,29 @@ Features a unique Commodore 64-themed ncurses TUI with Datasette loading animati
 > Coins mined on testnet will be transferred to mainnet at a reduced ratio (details TBD).
 > Early testnet miners will be rewarded for helping test the network.
 
+## Tokenomics
+
+| Parameter | Value |
+|-----------|-------|
+| Max supply | **19,640,000 C64** (1964 = year of the C64 CPU) |
+| Algorithm | rx/c64 (RandomX variant, CPU-only) |
+| Block time | 5 minutes |
+| Initial block reward | ~148 C64 |
+| 50% mined in | ~10 months |
+| Dev fund | 2% of block reward |
+| Emission | Smooth curve (no halving cliffs) |
+
+### Vesting
+
+Block rewards are split into 4 equal outputs with staggered unlock times to protect against price dumps at listing:
+
+| Portion | Unlock time |
+|---------|-------------|
+| 25% | ~24 hours (288 blocks) |
+| 25% | ~30 days (8,640 blocks) |
+| 25% | ~60 days (17,280 blocks) |
+| 25% | ~90 days (25,920 blocks) |
+
 ## Features
 
 - Commodore 64-themed ncurses TUI built into the node
@@ -20,16 +43,17 @@ Features a unique Commodore 64-themed ncurses TUI with Datasette loading animati
 - CPU-only mining (rx/c64 algorithm)
 - 2% dev fund for project development
 - 5 minute block time
+- Vesting on block rewards (anti-dump protection)
 - Privacy by default (Monero-based)
 
 ## Quick Start
 
 ### Option A: Pre-compiled binaries (Ubuntu 24.04 x86_64)
 
-Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.4):
+Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.5):
 ```bash
-wget https://github.com/oxynaz/c64chain/releases/download/v0.4/c64chain-v0.4-ubuntu24-x86_64.tar.gz
-tar xzf c64chain-v0.4-ubuntu24-x86_64.tar.gz
+wget https://github.com/oxynaz/c64chain/releases/download/v0.5/c64chain-v0.5-ubuntu24-x86_64.tar.gz
+tar xzf c64chain-v0.5-ubuntu24-x86_64.tar.gz
 mkdir -p ~/c64chain/build/bin
 mv c64chaind c64wallet ~/c64chain/build/bin/
 ```
@@ -134,6 +158,7 @@ Replace `-t 2` with the number of CPU threads to use (leave 1-2 for system). Alw
 | RPC Port | 29641 | 19641 |
 | Algorithm | rx/c64 | rx/c64 |
 | Block time | 5 minutes | 5 minutes |
+| Max supply | 19,640,000 | 19,640,000 |
 | Dev fund | 2% | 2% |
 
 ## Seed Nodes
@@ -149,7 +174,7 @@ Replace `-t 2` with the number of CPU threads to use (leave 1-2 for system). Alw
 
 | Component | Binary | Source |
 |-----------|--------|--------|
-| Node + Wallet | [v0.4 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.4) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
+| Node + Wallet | [v0.5 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.5) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
 | Miner | [v0.2 Release](https://github.com/oxynaz/c64miner/releases/tag/v0.2) | [oxynaz/c64miner](https://github.com/oxynaz/c64miner) |
 
 ## Community

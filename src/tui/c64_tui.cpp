@@ -171,9 +171,37 @@ void run_tui(std::atomic<bool>& stop_signal) {
     init_colors();
     bkgd(COLOR_PAIR(CP_NORMAL));
 
+
     NodeStats& stats = get_stats();
 
+    auto last_rpc_poll = std::chrono::steady_clock::now() - std::chrono::seconds(10);
     while (!stop_signal.load()) {
+        // Poll RPC for peer count every 5 seconds
+        {
+            auto now_poll = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now_poll - last_rpc_poll).count() >= 5) {
+                last_rpc_poll = now_poll;
+                FILE* rpc = popen("curl -s http://127.0.0.1:29641/get_info 2>/dev/null", "r");
+                if (rpc) {
+                    char rb[4096]; std::string rd;
+                    while (fgets(rb, sizeof(rb), rpc)) rd += rb;
+                    pclose(rpc);
+                    auto fv = [&](const char* k) -> uint64_t {
+                        auto p = rd.find(k);
+                        if (p == std::string::npos) return 0;
+                        auto c = rd.find(':', p);
+                        if (c == std::string::npos) return 0;
+                        auto s = rd.find_first_of("0123456789", c);
+                        if (s == std::string::npos) return 0;
+                        return std::stoull(rd.substr(s));
+                    };
+                    try {
+                        stats.peers_out.store(fv("outgoing_connections_count"));
+                        stats.peers_in.store(fv("incoming_connections_count"));
+                    } catch (...) {}
+                }
+            }
+        }
         int h, w;
         getmaxyx(stdscr, h, w);
         erase();
@@ -241,12 +269,22 @@ void run_tui(std::atomic<bool>& stop_signal) {
 
         snprintf(tmp, sizeof(tmp), "%lu", stats.rpc_calls.load());
         print_stat(6, "RPC CALLS:", tmp, CP_NORMAL);
-
+        snprintf(tmp, sizeof(tmp), "%lu OUT / %lu IN", stats.peers_out.load(), stats.peers_in.load());
+        print_stat(7, "PEERS:", tmp, stats.peers_out.load() + stats.peers_in.load() > 0 ? CP_SUCCESS : CP_WARNING);
+        {
+            uint64_t h = stats.height.load();
+            uint64_t t = stats.target_height.load();
+            if (stats.synced.load() || t == 0 || h >= t) {
+                snprintf(tmp, sizeof(tmp), "SYNCED");
+                print_stat(8, "SYNC:", tmp, CP_SUCCESS);
+            } else {
+                uint64_t pct = t > 0 ? (h * 100 / t) : 0;
+                snprintf(tmp, sizeof(tmp), "%lu / %lu (%lu%%)", h, t, pct);
+                print_stat(8, "SYNC:", tmp, CP_WARNING);
+            }
+        }
         snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d", hrs, mins, secs);
-        print_stat(7, "UPTIME:", tmp, CP_NORMAL);
-
-        snprintf(tmp, sizeof(tmp), "%lu", stats.log_msgs_received.load());
-        print_stat(8, "LOG MSGS:", tmp, CP_NORMAL);
+        print_stat(9, "UPTIME:", tmp, CP_NORMAL);
         y++;
 
         // Last block info
@@ -337,6 +375,30 @@ void tui_log_handler(const std::string& message) {
     stats.log_msgs_received++;
     if (message.empty()) return;
 
+    // Filter out connection spam (NEW/CLOSE CONNECTION + before_handshake)
+    if (message.find("before_handshake") != std::string::npos) return;
+    if (message.find("INC] NEW CONNECTION") != std::string::npos) return;
+    if (message.find("INC] CLOSE CONNECTION") != std::string::npos) return;
+    if (message.find("No available peer in gray list") != std::string::npos) return;
+    if (message.find("No available peer in white list") != std::string::npos) return;
+    if (message.find("Failed to connect to any") != std::string::npos) return;
+    if (message.find("OUT] NEW CONNECTION") != std::string::npos) return;
+    if (message.find("OUT] CLOSE CONNECTION") != std::string::npos) return;
+    if (message.find("bytes sent for category") != std::string::npos) return;
+    if (message.find("bytes received for category") != std::string::npos) return;
+    if (message.find("COMMAND_HANDSHAKE") != std::string::npos) return;
+    if (message.find("Failed to HANDSHAKE") != std::string::npos) return;
+    if (message.find("Failed to invoke command") != std::string::npos) return;
+    if (message.find("switching safe mode") != std::string::npos) return;
+    if (message.find("clearing used stripe") != std::string::npos) return;
+    if (message.find("Resolving node address") != std::string::npos) return;
+    if (message.find("Added node:") != std::string::npos) return;
+    if (message.find("state: requesting") != std::string::npos) return;
+    if (message.find("NOTIFY_GET_TXPOOL") != std::string::npos) return;
+    if (message.find("NOTIFY_NEW_TRANSACTIONS") != std::string::npos) return;
+    if (message.find("0Connect failed") != std::string::npos) return;
+    if (message.find("pruning seed") != std::string::npos) return;
+
     // --- Always update stats from raw message ---
 
     // HEIGHT XXXX, difficulty: YYY
@@ -409,6 +471,12 @@ void tui_log_handler(const std::string& message) {
     if (message.find("Calling RPC") != std::string::npos)
         stats.rpc_calls++;
 
+    // Track blocks received from peers
+    static bool block_from_peer = false;
+    if (message.find("Received NOTIFY_NEW_FLUFFY_BLOCK") != std::string::npos ||
+        message.find("Received NOTIFY_NEW_BLOCK") != std::string::npos) {
+        block_from_peer = true;
+    }
     // Block counts + generate clean log entries
     bool is_block_added = (message.find("BLOCK SUCCESSFULLY ADDED") != std::string::npos ||
                            message.find("+++++") != std::string::npos);
@@ -416,11 +484,16 @@ void tui_log_handler(const std::string& message) {
 
     if (is_block_added) {
         stats.blocks_added++;
-        stats.set_status("MINING");
-        // Add a clean log line for block found
         char buf[128];
-        snprintf(buf, sizeof(buf), "+++++ BLOCK FOUND! HEIGHT %lu", stats.height.load());
-        stats.add_log(std::string(buf), LOG_SUCCESS);
+        if (block_from_peer) {
+            snprintf(buf, sizeof(buf), "<<<<< BLOCK RECEIVED HEIGHT %lu", stats.height.load());
+            stats.add_log(std::string(buf), LOG_NORMAL);
+            block_from_peer = false;
+        } else {
+            stats.set_status("MINING");
+            snprintf(buf, sizeof(buf), "+++++ BLOCK MINED! HEIGHT %lu", stats.height.load());
+            stats.add_log(std::string(buf), LOG_SUCCESS);
+        }
         return;
     }
 
@@ -435,7 +508,7 @@ void tui_log_handler(const std::string& message) {
         "build/bin/", "__cxa_throw", "Unwound call", "bad_alloc",
         "Exception:", "libboost", "libc.so", "PERF", "HTTP [",
         "POST /json", "GET /get", "Calling RPC", "calling /",
-        "Setting LIMIT", "Set limit-", "INC]", "coinbase_weight",
+        "Setting LIMIT", "Set limit-", "coinbase_weight",
         "submitblock", "getblocktemplate", "net_service",
         "Starting core", "Starting p2p", "ZMQ", "Set server type",
         "Binding on", "prefix_name", "block reward:", "PoW:",
@@ -479,8 +552,41 @@ void tui_log_handler(const std::string& message) {
         }
     }
 
-    if (!clean.empty())
+    if (!clean.empty()) {
+        // Anti-spam: normalize connection messages (strip UUID and port)
+        static std::string last_msg;
+        static int repeat_count = 0;
+        std::string cmp = clean;
+        // Strip UUID patterns (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+        while (true) {
+            auto p = cmp.find_first_of("0123456789abcdef");
+            if (p == std::string::npos) break;
+            // Check if this looks like a UUID (8-4-4-4-12 with dashes)
+            if (p + 36 <= cmp.size() && cmp[p+8] == '-' && cmp[p+13] == '-') {
+                cmp.erase(p, 36);
+            } else break;
+        }
+        // Strip port numbers after IPs (e.g. :42340 -> :*)
+        for (size_t i = 0; i < cmp.size(); i++) {
+            if (cmp[i] == ':' && i + 1 < cmp.size() && isdigit(cmp[i+1])) {
+                size_t j = i + 1;
+                while (j < cmp.size() && isdigit(cmp[j])) j++;
+                cmp.replace(i+1, j-i-1, "*");
+            }
+        }
+        if (cmp == last_msg) {
+            repeat_count++;
+            if (repeat_count == 5) {
+                stats.add_log("  ... (repeated messages hidden)", LOG_WARNING);
+            }
+            // Only show every 50th repeat after that
+            if (repeat_count > 5 && repeat_count % 50 != 0) return;
+        } else {
+            repeat_count = 0;
+            last_msg = cmp;
+        }
         stats.add_log(clean, color);
+    }
 }
 
 // ---------- Easylogging++ Callback ----------

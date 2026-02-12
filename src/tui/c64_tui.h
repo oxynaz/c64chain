@@ -20,6 +20,10 @@ struct NodeStats {
     std::atomic<uint64_t> blocks_alt{0};
     std::atomic<uint64_t> rpc_calls{0};
     std::atomic<uint64_t> log_msgs_received{0};
+    std::atomic<uint64_t> peers_out{0};
+    std::atomic<uint64_t> peers_in{0};
+    std::atomic<uint64_t> target_height{0};
+    std::atomic<bool> synced{false};
     std::atomic<bool> mining{false};
 
     std::mutex mtx;

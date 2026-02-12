@@ -24,6 +24,7 @@ Features a unique Commodore 64-themed ncurses TUI with Datasette loading animati
 ## Quick Start
 
 ### 1. Install dependencies (Ubuntu 24.04 / Debian 12)
+
 ```bash
 sudo apt update
 sudo apt install -y build-essential cmake pkg-config libboost-all-dev libssl-dev \
@@ -34,6 +35,7 @@ sudo apt install -y build-essential cmake pkg-config libboost-all-dev libssl-dev
 ```
 
 ### 2. Build the node and wallet
+
 ```bash
 git clone https://github.com/oxynaz/c64chain.git
 cd c64chain
@@ -47,6 +49,7 @@ This produces two binaries in `build/bin/`:
 - `c64wallet` — the wallet CLI
 
 ### 3. Run the node
+
 ```bash
 cd ~/c64chain && screen -dmS node ./build/bin/c64chaind --testnet \
     --data-dir=$HOME/.c64chain --rpc-bind-port=29641 --log-level=1
@@ -57,15 +60,19 @@ View the TUI: `screen -r node` (detach with Ctrl+A then D)
 The node will automatically connect to seed nodes and sync the blockchain.
 
 ### 4. Create a wallet
+
+> ⚠️ **You need a wallet address before you can mine.** Follow this step first.
+
 ```bash
 cd ~/c64chain && ./build/bin/c64wallet --testnet \
     --daemon-address=127.0.0.1:29641 \
     --generate-new-wallet=$HOME/.c64chain/mywallet
 ```
 
-It will ask for a password. Save your wallet address (starts with 9...).
+It will ask for a password. **Save your wallet address** (starts with `9...`). You will need it to configure the miner.
 
 ### 5. Open an existing wallet
+
 ```bash
 cd ~/c64chain && ./build/bin/c64wallet --testnet \
     --daemon-address=127.0.0.1:29641 \
@@ -80,7 +87,7 @@ Useful wallet commands:
 
 ### 6. Mine C64
 
-See the [C64 Miner](https://github.com/oxynaz/c64miner) repository for mining instructions.
+Once your node is running and you have a wallet address, follow the [C64 Miner](https://github.com/oxynaz/c64miner) setup guide.
 
 ## Network Configuration
 

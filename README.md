@@ -1,11 +1,9 @@
 # C64 Chain
 
-![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.5-blue)
+![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.5.1-blue)
 
-**C64 Chain** is a privacy-focused, CPU-mineable cryptocurrency inspired by the Commodore 64.
+**C64 Chain** is a privacy-focused, CPU-mineable cryptocurrency inspired by the legendary Commodore 64.
 Forked from [Wownero](https://codeberg.org/wownero/wownero) (itself a fork of Monero).
-
-Features a unique Commodore 64-themed ncurses TUI with Datasette loading animation.
 
 ## ⚠️ Current Status: TESTNET
 
@@ -13,49 +11,73 @@ Features a unique Commodore 64-themed ncurses TUI with Datasette loading animati
 > Coins mined on testnet will be transferred to mainnet at a reduced ratio (details TBD).
 > Early testnet miners will be rewarded for helping test the network.
 
+## The C64 Spirit 🕹️
+
+C64 Chain is built as a love letter to the Commodore 64, the best-selling home computer of all time. Every detail pays homage:
+
+- **Node TUI**: Full ncurses Commodore 64 boot screen — blue border, PETSCII font, `**** C64 CHAIN NODE V0.1 ****` / `64K RAM SYSTEM  38911 BASIC BYTES FREE` / `READY.`
+- **Datasette loading**: The node startup simulates a Datasette tape loading animation with colored bars, just like loading a game in 1984
+- **BASIC-style display**: Node status displayed as `LIST` output with numbered lines, like a BASIC program
+- **Max supply**: **19,640,000 C64** — 1964 is the year the MOS 6502 CPU was designed, the processor that powered the C64
+- **Algorithm name**: `rx/c64` — RandomX variant customized for C64 Chain
+- **Miner TUI**: The C64 Miner features its own Commodore 64-themed terminal with `READY.` / `RUN C64MINER` prompt
+
 ## Tokenomics
 
 | Parameter | Value |
 |-----------|-------|
-| Max supply | **19,640,000 C64** (1964 = year of the C64 CPU) |
-| Algorithm | rx/c64 (RandomX variant, CPU-only) |
-| Block time | 5 minutes |
-| Initial block reward | ~148 C64 |
-| 50% mined in | ~10 months |
-| Dev fund | 2% of block reward |
-| Emission | Smooth curve (no halving cliffs) |
+| **Max supply** | **19,640,000 C64** |
+| **Algorithm** | rx/c64 (RandomX variant, CPU-only) |
+| **Block time** | 5 minutes (300 seconds) |
+| **Initial block reward** | ~149 C64 |
+| **Emission speed factor** | 21 |
+| **50% mined in** | ~10 months |
+| **80% mined in** | ~2 years |
+| **96% mined in** | ~4 years |
+| **Dev fund** | 2% of each block reward |
+| **Emission curve** | Smooth exponential decay (no halving cliffs) |
 
-### Vesting
+The emission follows Monero's smooth curve formula: `reward = (supply_cap - already_mined) >> ESF`. This means block rewards decrease gradually with every block, unlike Bitcoin's sudden halvings. Combined with the 19.64M cap, this creates a fair and predictable monetary policy.
 
-Block rewards are split into 4 equal outputs with staggered unlock times to protect against price dumps at listing:
+### Vesting (Anti-Dump Protection)
 
-| Portion | Unlock time |
-|---------|-------------|
-| 25% | ~24 hours (288 blocks) |
-| 25% | ~30 days (8,640 blocks) |
-| 25% | ~60 days (17,280 blocks) |
-| 25% | ~90 days (25,920 blocks) |
+Every block reward is split into **4 equal outputs** with staggered unlock times. This prevents miners from dumping all rewards immediately at listing:
+
+| Portion | Unlock after | Blocks |
+|---------|-------------|--------|
+| 25% | ~24 hours | 288 |
+| 25% | ~30 days | 8,640 |
+| 25% | ~60 days | 17,280 |
+| 25% | ~90 days | 25,920 |
+
+The 2% dev fund unlocks after ~24 hours (288 blocks).
+
+Each coinbase transaction has **5 outputs**: 4 vesting outputs for the miner + 1 dev fund output. This is enforced at consensus level — blocks without proper vesting are rejected by the network.
+
+### Why Vesting Matters
+
+Without vesting, early miners could accumulate large amounts of C64 and dump them as soon as the coin is listed on exchanges, crashing the price for everyone. The 90-day staggered unlock ensures that selling pressure is distributed over time, protecting the coin's value for all participants.
 
 ## Features
 
-- Commodore 64-themed ncurses TUI built into the node
-- Datasette loading animation on startup
-- CPU-only mining (rx/c64 algorithm)
-- 2% dev fund for project development
-- 5 minute block time
-- Vesting on block rewards (anti-dump protection)
-- Privacy by default (Monero-based)
+- 🖥️ Commodore 64-themed ncurses TUI built into the node
+- 📼 Datasette loading animation on startup
+- ⛏️ CPU-only mining (rx/c64 algorithm, RandomX variant)
+- 💰 2% dev fund for project development
+- ⏱️ 5 minute block time
+- 🔒 Vesting on block rewards (4×25% staggered unlock over 90 days)
+- 🕶️ Privacy by default (Monero/CryptoNote-based)
+- 🚫 No premine, no ICO, no VC funding
 
 ## Quick Start
 
 ### Option A: Pre-compiled binaries (Ubuntu 24.04 x86_64)
 
-Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.5):
+Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.5.1):
 ```bash
-wget https://github.com/oxynaz/c64chain/releases/download/v0.5/c64chain-v0.5-ubuntu24-x86_64.tar.gz
-tar xzf c64chain-v0.5-ubuntu24-x86_64.tar.gz
-mkdir -p ~/c64chain/build/bin
-mv c64chaind c64wallet ~/c64chain/build/bin/
+wget https://github.com/oxynaz/c64chain/releases/download/v0.5.1/c64chain-v0.5.1-ubuntu24-x86_64.tar.gz
+tar xzf c64chain-v0.5.1-ubuntu24-x86_64.tar.gz
+chmod +x c64chaind c64wallet c64chain-wallet-rpc
 ```
 
 ### Option B: Build from source
@@ -79,9 +101,10 @@ cmake ..
 make -j$(nproc)
 ```
 
-This produces two binaries in `build/bin/`:
+This produces binaries in `build/bin/`:
 - `c64chaind` — the node daemon
 - `c64wallet` — the wallet CLI
+- `c64chain-wallet-rpc` — wallet RPC server (for exchange/pool integration)
 
 ## Run the node
 ```bash
@@ -100,7 +123,7 @@ The node will automatically connect to seed nodes and sync the blockchain.
 ./c64wallet --testnet --daemon-address=127.0.0.1:29641 --generate-new-wallet=$HOME/.c64chain/mywallet
 ```
 
-It will ask for a password. **Save your wallet address** (starts with `9...`). You will need it to configure the miner.
+It will ask for a password. **Save your wallet address** (starts with `9...`) and your **seed phrase** (25 words). You will need the address to configure the miner.
 
 ## Open an existing wallet
 ```bash
@@ -108,47 +131,44 @@ It will ask for a password. **Save your wallet address** (starts with `9...`). Y
 ```
 
 Useful wallet commands:
-- `balance` — check your balance
+- `balance` — check your balance (shows locked/unlocked due to vesting)
 - `address` — show your address
 - `transfer ADDRESS AMOUNT` — send C64 coins
+- `seed` — display your recovery seed phrase
 - `exit` — quit the wallet
 
 ## Mine C64
 
-Download and build the miner from [C64 Miner](https://github.com/oxynaz/c64miner), or download the pre-compiled binary from [Miner Releases](https://github.com/oxynaz/c64miner/releases/tag/v0.2).
+Download the miner from [C64 Miner Releases](https://github.com/oxynaz/c64miner/releases/tag/v0.2.1), or build from [source](https://github.com/oxynaz/c64miner).
 
-Create a `config.json` in `~/c64miner/`:
+Create a `config.json`:
 ```json
 {
     "autosave": false,
     "donate-level": 0,
-    "cpu": {
-        "enabled": true
-    },
+    "cpu": { "enabled": true },
     "opencl": false,
     "cuda": false,
-    "pools": [
-        {
-            "url": "127.0.0.1:29641",
-            "user": "YOUR_C64_WALLET_ADDRESS_HERE",
-            "algo": "rx/c64",
-            "coin": "c64chain",
-            "daemon": true,
-            "daemon-poll-interval": 1000
-        }
-    ],
+    "pools": [{
+        "url": "127.0.0.1:29641",
+        "user": "YOUR_C64_WALLET_ADDRESS_HERE",
+        "algo": "rx/c64",
+        "coin": "c64chain",
+        "daemon": true,
+        "daemon-poll-interval": 1000
+    }],
     "print-time": 5
 }
 ```
 
-> ⚠️ `"daemon": true` and `"coin": "c64chain"` are **required**. See the [C64 Miner README](https://github.com/oxynaz/c64miner) for full configuration details.
+> ⚠️ `"daemon": true` and `"coin": "c64chain"` are **required**.
 
 Run the miner:
 ```bash
-sudo ./c64miner -c config.json -t 2
+sudo ./c64miner -c config.json -t $(nproc)
 ```
 
-Replace `-t 2` with the number of CPU threads to use (leave 1-2 for system). Always run with `sudo` for best performance (huge pages).
+Always run with `sudo` for best performance (huge pages). The miner features a Commodore 64-themed TUI showing hashrate, accepted blocks, and live mining logs.
 
 ## Network Configuration
 
@@ -163,8 +183,7 @@ Replace `-t 2` with the number of CPU threads to use (leave 1-2 for system). Alw
 
 ## Seed Nodes
 
-- c64seed.ddns.net (163.172.215.129)
-- c64seed2.ddns.net (51.158.152.121)
+4 seed nodes are hardcoded in the node binary. Your node will automatically discover and connect to them.
 
 ## Block Explorer
 
@@ -174,8 +193,8 @@ Replace `-t 2` with the number of CPU threads to use (leave 1-2 for system). Alw
 
 | Component | Binary | Source |
 |-----------|--------|--------|
-| Node + Wallet | [v0.5 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.5) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
-| Miner | [v0.2 Release](https://github.com/oxynaz/c64miner/releases/tag/v0.2) | [oxynaz/c64miner](https://github.com/oxynaz/c64miner) |
+| Node + Wallet | [v0.5.1 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.5.1) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
+| Miner | [v0.2.1 Release](https://github.com/oxynaz/c64miner/releases/tag/v0.2.1) | [oxynaz/c64miner](https://github.com/oxynaz/c64miner) |
 
 ## Community
 

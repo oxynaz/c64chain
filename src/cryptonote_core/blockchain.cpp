@@ -1692,7 +1692,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
   else
   {
     height = m_db->height();
-    b.major_version = m_hardfork->get_current_version();
+    b.major_version = m_hardfork->get_ideal_version(height);
     b.minor_version = m_hardfork->get_ideal_version();
     b.prev_id = get_tail_id();
     median_weight = m_current_block_cumul_weight_limit / 2;

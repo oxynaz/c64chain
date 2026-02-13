@@ -735,6 +735,8 @@ namespace nodetool
     {
       full_addrs.insert("163.172.215.129:29640"); // C64 Chain testnet seed1 (c64seed.ddns.net)
       full_addrs.insert("51.158.152.121:29640"); // C64 Chain testnet seed2 (c64seed2.ddns.net)
+      full_addrs.insert("54.38.240.117:29640"); // C64 Chain testnet seed3 (c64seed3.ddns.net)
+      full_addrs.insert("172.245.238.97:29640"); // C64 Chain testnet seed4 (c64seed4.ddns.net)
     }
     else if (m_nettype == cryptonote::STAGENET)
     {
@@ -746,6 +748,8 @@ namespace nodetool
     {
       full_addrs.insert("163.172.215.129:19640"); // C64 Chain mainnet seed1 (c64seed.ddns.net)
       full_addrs.insert("51.158.152.121:19640"); // C64 Chain mainnet seed2 (c64seed2.ddns.net)
+      full_addrs.insert("54.38.240.117:19640"); // C64 Chain mainnet seed3 (c64seed3.ddns.net)
+      full_addrs.insert("172.245.238.97:19640"); // C64 Chain mainnet seed4 (c64seed4.ddns.net)
     }
     return full_addrs;
   }

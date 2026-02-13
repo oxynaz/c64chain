@@ -1350,7 +1350,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height, 
   if (hf_version >= HF_VERSION_BLOCK_HEADER_MINER_SIG)
   {
       // sanity checks
-      if (b.miner_tx.vout.size() != 1)
+      if (b.miner_tx.vout.size() != 1 && !(hf_version >= HF_VERSION_VESTING && b.miner_tx.vout.size() == 5))
       {
           MWARNING("Only 1 output in miner transaction allowed");
           return false;
@@ -1781,7 +1781,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
    */
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob weight
   uint8_t hf_version = b.major_version;
-  size_t max_outs = hf_version >= 4 ? 1 : 11;
+  size_t max_outs = hf_version >= HF_VERSION_VESTING ? 5 : (hf_version >= 4 ? 1 : 11);
   bool r = construct_miner_tx(this, m_nettype, height, median_weight, already_generated_coins, txs_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_weight = txs_weight + get_transaction_weight(b.miner_tx);
@@ -2430,7 +2430,7 @@ void Blockchain::get_output_key_mask_unlocked(const uint64_t& amount, const uint
   mask = o_data.commitment;
   tx_out_index toi = m_db->get_output_tx_and_index(amount, index);
   const uint8_t hf_version = m_hardfork->get_current_version();
-  unlocked = is_tx_spendtime_unlocked(m_db->get_tx_unlock_time(toi.first), hf_version);
+  unlocked = is_tx_spendtime_unlocked(o_data.unlock_time, hf_version);
 }
 //------------------------------------------------------------------
 bool Blockchain::get_output_distribution(uint64_t amount, uint64_t from_height, uint64_t to_height, uint64_t &start_height, std::vector<uint64_t> &distribution, uint64_t &base) const

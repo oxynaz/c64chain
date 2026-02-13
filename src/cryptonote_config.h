@@ -215,7 +215,7 @@
 #define HF_VERSION_DYNAMIC_UNLOCK               17
 #define HF_VERSION_FIXED_UNLOCK                 18
 #define HF_VERSION_BULLETPROOF_PLUS             18
-#define HF_VERSION_BLOCK_HEADER_MINER_SIG       18
+#define HF_VERSION_BLOCK_HEADER_MINER_SIG       255  // C64 CHAIN: disabled, not implemented
 #define HF_VERSION_VIEW_TAGS                    20
 #define HF_VERSION_2021_SCALING                 20
 #define HF_VERSION_BP_PLUS_FULL_COMMIT          21

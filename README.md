@@ -1,6 +1,6 @@
 # C64 Chain
 
-![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.5.1-blue)
+![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.5.2-blue)
 
 **C64 Chain** is a privacy-focused, CPU-mineable cryptocurrency inspired by the legendary Commodore 64.
 Forked from [Wownero](https://codeberg.org/wownero/wownero) (itself a fork of Monero).
@@ -73,26 +73,32 @@ Without vesting, early miners could accumulate large amounts of C64 and dump the
 
 ### Option A: Pre-compiled binaries (Ubuntu 24.04 x86_64)
 
-Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.5.1):
+Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.5.2):
 ```bash
-wget https://github.com/oxynaz/c64chain/releases/download/v0.5.1/c64chain-v0.5.1-ubuntu24-x86_64.tar.gz
-tar xzf c64chain-v0.5.1-ubuntu24-x86_64.tar.gz
+wget https://github.com/oxynaz/c64chain/releases/download/v0.5.2/c64chain-v0.5.2-ubuntu24-x86_64.tar.gz
+tar xzf c64chain-v0.5.2-ubuntu24-x86_64.tar.gz
 chmod +x c64chaind c64wallet c64chain-wallet-rpc
 ```
 
 ### Option B: Build from source
 
-#### 1. Install dependencies (Ubuntu 24.04 / Debian 12)
+#### 1. Install dependencies (Ubuntu 22.04 / 24.04)
 ```bash
 sudo apt update
 sudo apt install -y build-essential cmake pkg-config libboost-all-dev libssl-dev \
     libzmq3-dev libsodium-dev libunwind-dev liblzma-dev libreadline-dev \
-    libexpat1-dev libpgm-dev qttools5-dev-tools libhidapi-dev libusb-1.0-0-dev \
+    libexpat1-dev libpgm-dev libhidapi-dev libusb-1.0-0-dev \
     libprotobuf-dev protobuf-compiler libudev-dev libncurses5-dev libncursesw5-dev \
-    libunbound-dev liblmdb-dev libminiupnpc-dev
+    libunbound-dev liblmdb-dev libminiupnpc-dev libuv1-dev git
 ```
 
-#### 2. Build the node and wallet
+#### 2. Disable IPv6 (required for peer discovery)
+```bash
+sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+```
+
+#### 3. Build the node and wallet
 ```bash
 git clone https://github.com/oxynaz/c64chain.git
 cd c64chain
@@ -101,10 +107,30 @@ cmake ..
 make -j$(nproc)
 ```
 
+#### 4. Verify the build
+```bash
+./bin/c64chaind --version
+```
+Should display: `C64 Chain 'Genesis' (v0.5.2-release)`
+
 This produces binaries in `build/bin/`:
 - `c64chaind` — the node daemon
 - `c64wallet` — the wallet CLI
 - `c64chain-wallet-rpc` — wallet RPC server (for exchange/pool integration)
+
+### Updating to a new version
+
+```bash
+cd ~/c64chain
+git pull --tags
+rm -rf build
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+```
+
+> ⚠️ **Always use `git pull --tags`** (not just `git pull`). Without `--tags`, the version will display incorrectly.
+> The `rm -rf build` ensures a clean build with no cached artifacts.
 
 ## Run the node
 ```bash
@@ -113,8 +139,30 @@ This produces binaries in `build/bin/`:
 
 The node will automatically connect to seed nodes and sync the blockchain.
 
-> **Tip:** Use `screen` to run in background: `screen -dmS node ./c64chaind --testnet --data-dir=$HOME/.c64chain --rpc-bind-port=29641 --log-level=1`
+> **Tip:** Use `screen` to run in background:
+> ```bash
+> screen -dmS node bash -c "cd ~/c64chain/build/bin && ./c64chaind --testnet --data-dir=\$HOME/.c64chain --log-level=1 --out-peers 64 --in-peers 128"
+> ```
 > View the TUI: `screen -r node` (detach with Ctrl+A then D)
+
+### LAN Mining Setup
+
+If you have multiple machines behind the same internet connection (same external IP), only one machine can run a node. The others mine directly on the node's RPC via your local network:
+
+**On the node machine** — add these flags to open RPC on the local network:
+```bash
+./c64chaind --testnet --data-dir=$HOME/.c64chain --rpc-bind-ip=0.0.0.0 --confirm-external-bind --log-level=1
+```
+
+**On other LAN machines** — point the miner to the node machine's local IP:
+```json
+{
+    "url": "192.168.X.X:29641",
+    "daemon": true
+}
+```
+
+No node needed on the miner-only machines.
 
 ## Create a wallet
 
@@ -130,12 +178,49 @@ It will ask for a password. **Save your wallet address** (starts with `9...`) an
 ./c64wallet --testnet --daemon-address=127.0.0.1:29641 --wallet-file=$HOME/.c64chain/mywallet
 ```
 
-Useful wallet commands:
-- `balance` — check your balance (shows locked/unlocked due to vesting)
-- `address` — show your address
-- `transfer ADDRESS AMOUNT` — send C64 coins
-- `seed` — display your recovery seed phrase
-- `exit` — quit the wallet
+### Wallet commands
+
+| Command | Description |
+|---------|-------------|
+| `balance` | Check your balance (shows locked/unlocked due to vesting) |
+| `vesting` | Show full vesting unlock timeline with per-tier status |
+| `address` | Show your address |
+| `transfer ADDRESS AMOUNT` | Send C64 coins |
+| `seed` | Display your recovery seed phrase |
+| `help` | Show available commands |
+| `exit` | Quit the wallet |
+
+### The `vesting` command
+
+The `vesting` command displays a complete overview of your mined rewards and their unlock schedule:
+
+```
+  === C64 VESTING STATUS ===
+
+  Network height:  1685
+  Total balance:   158811.2489 C64
+  Unlocked:        34156.1846 C64 (21.5%)
+  Locked:          124655.0643 C64 (78.5%)
+
+  --- Per-Tier Status ---
+  Tier 1 (24h): 33811.3783 unlocked, 5805.2324 locked
+  Tier 2 (30d): 0.0000 unlocked, 39616.6106 locked
+  Tier 3 (60d): 0.0000 unlocked, 39616.6106 locked
+  Tier 4 (90d): 0.0000 unlocked, 39616.6106 locked
+
+  --- Unlock Timeline ---
+  When                   Date                 + Unlocked   Total available       %
+  Now                    -                             -     34156.1846 C64   21.5%
+  + 24 hours             2026-02-16 13:19   5805.2324 C64    39961.4170 C64   25.2%
+  + 30 days              2026-03-17 13:19  39616.6106 C64    79578.0276 C64   50.1%
+  + 60 days              2026-04-16 14:19  39616.6106 C64   119194.6383 C64   75.1%
+  + 90 days              2026-05-16 14:19  39616.6106 C64   158811.2489 C64  100.0%
+
+  100% unlocked: 2026-05-16 14:09 (in ~89 days)
+  Total: 158811.2489 C64
+```
+
+This shows exactly when your mined coins will become spendable, with projected dates for each vesting tier.
 
 ## Mine C64
 
@@ -183,7 +268,7 @@ Always run with `sudo` for best performance (huge pages). The miner features a C
 
 ## Seed Nodes
 
-4 seed nodes are hardcoded in the node binary. Your node will automatically discover and connect to them.
+5 seed nodes are hardcoded in the node binary across 3 continents (Europe, North America, Asia). Your node will automatically discover and connect to them.
 
 ## Block Explorer
 
@@ -193,7 +278,7 @@ Always run with `sudo` for best performance (huge pages). The miner features a C
 
 | Component | Binary | Source |
 |-----------|--------|--------|
-| Node + Wallet | [v0.5.1 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.5.1) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
+| Node + Wallet | [v0.5.2 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.5.2) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
 | Miner | [v0.2.1 Release](https://github.com/oxynaz/c64miner/releases/tag/v0.2.1) | [oxynaz/c64miner](https://github.com/oxynaz/c64miner) |
 
 ## Community

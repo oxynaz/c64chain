@@ -737,6 +737,7 @@ namespace nodetool
       full_addrs.insert("51.158.152.121:29640"); // C64 Chain testnet seed2 (c64seed2.ddns.net)
       full_addrs.insert("54.38.240.117:29640"); // C64 Chain testnet seed3 (c64seed3.ddns.net)
       full_addrs.insert("172.245.238.97:29640"); // C64 Chain testnet seed4 (c64seed4.ddns.net)
+      full_addrs.insert("217.216.34.11:29640"); // C64 Chain testnet seed5 (c64seed5.ddns.net) Singapore
     }
     else if (m_nettype == cryptonote::STAGENET)
     {
@@ -750,6 +751,7 @@ namespace nodetool
       full_addrs.insert("51.158.152.121:19640"); // C64 Chain mainnet seed2 (c64seed2.ddns.net)
       full_addrs.insert("54.38.240.117:19640"); // C64 Chain mainnet seed3 (c64seed3.ddns.net)
       full_addrs.insert("172.245.238.97:19640"); // C64 Chain mainnet seed4 (c64seed4.ddns.net)
+      full_addrs.insert("217.216.34.11:19640"); // C64 Chain mainnet seed5 (c64seed5.ddns.net) Singapore
     }
     return full_addrs;
   }

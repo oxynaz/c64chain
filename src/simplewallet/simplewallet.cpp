@@ -200,6 +200,7 @@ namespace
   const char* USAGE_SET_DAEMON("set_daemon <host>[:<port>] [trusted|untrusted|this-is-probably-a-spy-node]");
   const char* USAGE_SHOW_BALANCE("balance [detail]");
   const char* USAGE_INCOMING_TRANSFERS("incoming_transfers [available|unavailable] [verbose] [uses] [index=<N1>[,<N2>[,...]]]");
+  const char* USAGE_SHOW_VESTING("vesting");
   const char* USAGE_PAYMENTS("payments <PID_1> [<PID_2> ... <PID_N>]");
   const char* USAGE_PAYMENT_ID("payment_id");
   const char* USAGE_TRANSFER("transfer [index=<N1>[,<N2>,...]] [<priority>] [<ring_size>] (<URI> | <address> <amount>) [subtractfeefrom=<D0>[,<D1>,all,...]] [<payment_id>]");
@@ -3272,6 +3273,7 @@ bool simple_wallet::help(const std::vector<std::string> &args/* = std::vector<st
     message_writer() << "";
     message_writer() << tr("\"wallet_info\" - Show wallet main address and other info.");
     message_writer() << tr("\"balance\" - Show balance.");
+    message_writer() << tr("\"vesting\" - Show vesting unlock timeline.");
     message_writer() << tr("\"address all\" - Show all addresses.");
     message_writer() << tr("\"address new\" - Create new subaddress.");
     message_writer() << tr("\"transfer <address> <amount>\" - Send C64 to an address.");
@@ -3419,6 +3421,10 @@ simple_wallet::simple_wallet()
                            tr("Show the incoming transfers, all or filtered by availability and address index.\n\n"
                               "Output format:\n"
                               "Amount, Spent(\"T\"|\"F\"), \"frozen\"|\"locked\"|\"unlocked\", RingCT, Global Index, Transaction Hash, Address Index, [Public Key, Key Image] "));
+  m_cmd_binder.set_handler("vesting",
+                           boost::bind(&simple_wallet::on_command, this, &simple_wallet::show_vesting, _1),
+                           tr(USAGE_SHOW_VESTING),
+                           tr("Show vesting timeline with unlock schedule for mined outputs."));
   m_cmd_binder.set_handler("payments",
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::show_payments,_1),
                            tr(USAGE_PAYMENTS),
@@ -6277,6 +6283,230 @@ bool simple_wallet::show_incoming_transfers(const std::vector<std::string>& args
   return true;
 }
 //----------------------------------------------------------------------------------------------------
+bool simple_wallet::show_vesting(const std::vector<std::string>& args)
+{
+  LOCK_IDLE_SCOPE();
+
+  const uint64_t blockchain_height = m_wallet->get_blockchain_current_height();
+  if (blockchain_height == 0)
+  {
+    fail_msg_writer() << tr("Wallet is not synced. Please wait for sync to complete.");
+    return true;
+  }
+
+  // Vesting tier definitions (unlock delay in blocks from mined block)
+  const uint64_t tier_delays[] = { C64_VESTING_UNLOCK_1, C64_VESTING_UNLOCK_2, C64_VESTING_UNLOCK_3, C64_VESTING_UNLOCK_4 };
+  const char* tier_names[] = { "Tier 1 (24h)", "Tier 2 (30d)", "Tier 3 (60d)", "Tier 4 (90d)" };
+
+  // Collect all unspent outputs
+  tools::wallet2::transfer_container transfers;
+  m_wallet->get_transfers(transfers);
+
+  uint64_t total_amount = 0;
+  uint64_t total_unlocked = 0;
+  uint64_t total_locked = 0;
+  uint64_t tier_locked[4] = {0, 0, 0, 0};
+  uint64_t tier_unlocked[4] = {0, 0, 0, 0};
+  uint64_t pre_vesting_amount = 0;
+  uint64_t pre_vesting_count = 0;
+  uint64_t vesting_outputs = 0;
+
+  // Map: unlock_block -> amount (for timeline)
+  std::map<uint64_t, uint64_t> unlock_schedule;
+
+  for (const auto& td : transfers)
+  {
+    if (td.m_spent)
+      continue;
+    if (td.m_subaddr_index.major != m_current_subaddress_account)
+      continue;
+
+    uint64_t amount = td.amount();
+    total_amount += amount;
+
+    bool unlocked = m_wallet->is_transfer_unlocked(td);
+    if (unlocked)
+      total_unlocked += amount;
+    else
+      total_locked += amount;
+
+    // Determine vesting tier from coinbase output position
+    // tx.unlock_time is global (288 for all), but real tier is per-output
+    // based on m_internal_output_index (same logic as wallet2::is_transfer_unlocked)
+    bool is_coinbase = (td.m_tx.vin.size() == 1 && td.m_tx.vin[0].type() == typeid(cryptonote::txin_gen));
+    bool is_vesting = is_coinbase && td.m_tx.vout.size() == 5 && td.m_internal_output_index < 4;
+
+    if (!is_vesting)
+    {
+      pre_vesting_amount += amount;
+      pre_vesting_count++;
+      continue;
+    }
+
+    int tier = td.m_internal_output_index;  // 0=tier1, 1=tier2, 2=tier3, 3=tier4
+    uint64_t real_unlock_block = td.m_block_height + tier_delays[tier];
+
+    vesting_outputs++;
+    if (unlocked)
+      tier_unlocked[tier] += amount;
+    else
+    {
+      tier_locked[tier] += amount;
+      unlock_schedule[real_unlock_block] += amount;
+    }
+  }
+
+  if (total_amount == 0)
+  {
+    success_msg_writer() << tr("No outputs found.");
+    return true;
+  }
+
+  // === HEADER ===
+  success_msg_writer() << "";
+  success_msg_writer() << tr("  === C64 VESTING STATUS ===");
+  success_msg_writer() << "";
+  success_msg_writer() << boost::format(tr("  Network height:  %u")) % blockchain_height;
+  success_msg_writer() << boost::format(tr("  Total balance:   %.4f C64")) % ((double)total_amount / COIN);
+  success_msg_writer() << boost::format(tr("  Unlocked:        %.4f C64 (%.1f%%)"))
+    % ((double)total_unlocked / COIN)
+    % (total_amount > 0 ? (double)total_unlocked / total_amount * 100.0 : 0.0);
+  success_msg_writer() << boost::format(tr("  Locked:          %.4f C64 (%.1f%%)"))
+    % ((double)total_locked / COIN)
+    % (total_amount > 0 ? (double)total_locked / total_amount * 100.0 : 0.0);
+
+  // === PER-TIER STATUS ===
+  success_msg_writer() << "";
+  success_msg_writer() << tr("  --- Per-Tier Status ---");
+  for (int i = 0; i < 4; i++)
+  {
+    uint64_t tier_total = tier_unlocked[i] + tier_locked[i];
+    if (tier_total == 0) continue;
+    success_msg_writer() << boost::format(tr("  %s: %.4f unlocked, %.4f locked"))
+      % tier_names[i]
+      % ((double)tier_unlocked[i] / COIN)
+      % ((double)tier_locked[i] / COIN);
+  }
+
+  if (pre_vesting_count > 0)
+  {
+    success_msg_writer() << boost::format(tr("  Pre-vesting:     %.4f C64 (%u outputs)"))
+      % ((double)pre_vesting_amount / COIN) % pre_vesting_count;
+  }
+
+  // === UNLOCK TIMELINE ===
+  if (!unlock_schedule.empty())
+  {
+    success_msg_writer() << "";
+    success_msg_writer() << tr("  --- Unlock Timeline ---");
+    success_msg_writer() << "";
+
+    // Milestones in blocks from now
+    struct milestone {
+      const char* name;
+      uint64_t blocks;
+    };
+    milestone milestones[] = {
+      {"+ 24 hours", 288},
+      {"+ 1 week", 2016},
+      {"+ 2 weeks", 4032},
+      {"+ 30 days", 8640},
+      {"+ 45 days", 12960},
+      {"+ 60 days", 17280},
+      {"+ 75 days", 21600},
+      {"+ 90 days", 25920},
+      {"+ 95 days", 27360},
+    };
+
+    // Calculate time for each milestone
+    time_t now = time(nullptr);
+
+    success_msg_writer() << boost::format("  %-22s %-18s %15s %17s %7s")
+      % tr("When") % tr("Date") % tr("+ Unlocked") % tr("Total available") % tr("%");
+    success_msg_writer() << "  ---------------------- ------------------ --------------- ----------------- -------";
+
+    // Current state
+    {
+      // Format amounts with 4 decimals: divide by COIN to get double
+      double d_total_unlocked = (double)total_unlocked / COIN;
+      double pct_now = total_amount > 0 ? (double)total_unlocked / total_amount * 100.0 : 0.0;
+      success_msg_writer() << boost::format("  %-22s %-18s %15s %14.4f C64 %6.1f%%")
+        % tr("Now") % "-" % "-"
+        % d_total_unlocked
+        % pct_now;
+    }
+
+    uint64_t running = total_unlocked;
+    uint64_t prev_target = blockchain_height;
+
+    for (const auto& ms : milestones)
+    {
+      uint64_t target = blockchain_height + ms.blocks;
+
+      // Sum amounts unlocking between prev_target and target
+      uint64_t newly = 0;
+      for (const auto& entry : unlock_schedule)
+      {
+        if (entry.first > prev_target && entry.first <= target)
+          newly += entry.second;
+      }
+
+      running += newly;
+      double pct = total_amount > 0 ? (double)running / total_amount * 100.0 : 0.0;
+
+      // Calculate date
+      time_t milestone_time = now + (ms.blocks * DIFFICULTY_TARGET_V2);
+      struct tm* tm_info = localtime(&milestone_time);
+      char date_buf[20];
+      strftime(date_buf, sizeof(date_buf), "%Y-%m-%d %H:%M", tm_info);
+
+      {
+        double d_newly = (double)newly / COIN;
+        double d_running = (double)running / COIN;
+        success_msg_writer() << boost::format("  %-22s %-18s %12.4f C64 %14.4f C64 %6.1f%%")
+          % ms.name
+          % date_buf
+          % d_newly
+          % d_running
+          % pct;
+      }
+
+      prev_target = target;
+    }
+
+    // Find last unlock block
+    uint64_t max_unlock_block = 0;
+    for (const auto& entry : unlock_schedule)
+    {
+      if (entry.first > max_unlock_block)
+        max_unlock_block = entry.first;
+    }
+
+    if (max_unlock_block > blockchain_height)
+    {
+      uint64_t blocks_left = max_unlock_block - blockchain_height;
+      uint64_t days_left = (blocks_left * DIFFICULTY_TARGET_V2) / 86400;
+      time_t full_time = now + (blocks_left * DIFFICULTY_TARGET_V2);
+      struct tm* tm_info = localtime(&full_time);
+      char date_buf[20];
+      strftime(date_buf, sizeof(date_buf), "%Y-%m-%d %H:%M", tm_info);
+
+      success_msg_writer() << "";
+      success_msg_writer() << boost::format(tr("  100%% unlocked: %s (in ~%u days)"))
+        % date_buf % days_left;
+      success_msg_writer() << boost::format(tr("  Total: %.4f C64")) % ((double)total_amount / COIN);
+    }
+  }
+  else if (total_locked == 0 && total_amount > 0)
+  {
+    success_msg_writer() << "";
+    success_msg_writer() << tr("  All outputs are unlocked!");
+  }
+
+  success_msg_writer() << "";
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
 bool simple_wallet::show_payments(const std::vector<std::string> &args)
 {
   if(args.empty())
@@ -6596,63 +6826,7 @@ void simple_wallet::check_for_inactivity_lock(bool user)
     m_in_command = true;
     if (!user)
     {
-      const std::string speech = tr("tis, tis.. you left the wallet unattended. you will be punished.");
-      std::vector<std::pair<std::string, size_t>> lines = tools::split_string_by_width(speech, 45);
-
-      size_t max_len = 0;
-      for (const auto &i: lines)
-        max_len = std::max(max_len, i.second);
-      const size_t n_u = max_len + 2;
-      tools::msg_writer() << " " << std::string(n_u, '_');
-      for (size_t i = 0; i < lines.size(); ++i)
-        tools::msg_writer() << (i == 0 ? "/" : i == lines.size() - 1 ? "\\" : "|") << " " << lines[i].first << std::string(max_len - lines[i].second, ' ') << " " << (i == 0 ? "\\" : i == lines.size() - 1 ? "/" : "|");
-      tools::msg_writer() << " " << std::string(n_u, '-') << std::endl <<
-          "                                          \\                  ~~~^~^.                " << std::endl <<
-          "                                           \\               :5P~~~~~5~.              " << std::endl <<
-          "                                            \\             :~~~~~:~.~~^              " << std::endl <<
-          "                                             \\            :.& !!@@~~~..             " << std::endl <<
-          "                                                          .:.@#@@@##^:@.             " << std::endl <<
-          "                                                        ^^..#@@@@@@?:.^              " << std::endl <<
-          "                                                     ~.^ ^^J #G@@GG?G.:              " << std::endl <<
-          "                                            ~~~~     .B^#5#BBBJ^JPBBB#BP         P   " << std::endl <<
-          "                                         ^^^~?     ^^^^^.BBBBBBBBBBBBBBB^        @@@~" << std::endl <<
-          "                                        ^^^:    .GG??GG:BBBBBBBB@BBBBBGBP^    ?  ^^  " << std::endl <<
-          "                                         ^^   ^PPPP5P5##BBBBPGJYJBBBBJJ#B ^  ? ^^^   " << std::endl <<
-          "                                         .. ^?P!Y    5&#BBBPP.!77!BB@!!~ ? ~!?~~  ?  " << std::endl <<
-          "                                          ..^PP      5~..5PPP!:^:.P5:^:.?~!!^~   ?   " << std::endl <<
-          "                                             .!     ~!!~Y??5P@@@@PP@@7 ! ~~^^   ~    " << std::endl <<
-          "                                         .^^. .^   !!!~YJY &@@@@@&&@@  !:  ~    ~    " << std::endl <<
-          "                                                  !!~ YJP#&&@@@@&&@@&P.. . ^         " << std::endl <<
-          "                                                ~!!. P5#BBB&@@@&&@@&@#P   ~          " << std::endl <<
-          "                                               ~~.    GBBBBBB&&&&&&&GBB   ~          " << std::endl <<
-          "                                             ^^:     PPGBBBBBBPBBGBBBGGJ ?           " << std::endl <<
-          "             #5                              @BB     555#BPBBBBBBBPBBBB??            " << std::endl <<
-          "            5##&                            .@G      JGPPPBBBJBPBBBBBB#              " << std::endl <<
-          "         &&&&&& &       &&&&&B&#&           7    ?    G5PPPPPY5PBBB###~              " << std::endl <<
-          "  ?#&&:&&&&&&&@@&&G    &&&&B&&B5P&G        ?       ?   GG5PPP5PP @@?B?               " << std::endl <<
-          "    #&@@&&&&@&&&&&&G  GG&&&& &&&&&&&                ?? JGGGGGB :?J7^                 " << std::endl <<
-          "    &&P&&G&&&&G&&&&GG GGG&&   5&&&&&P     ?            7.~GGB: !J~!^.                " << std::endl <<
-          "     &&GJ@G#GY:J&&&PGG GGGGP    5PPP     ?               .:~!^:77!^.                 " << std::endl <<
-          "     Y&5G&@@@@@&#&G7#JG         GG55     ?                .^~~:~~^.:::               " << std::endl <<
-          "      #&P&@@^:@@#GG!J@         PP55     ?                  :::: ..:::^^^             " << std::endl <<
-          "      B&&5!#@@!# GY@@&&&#&&@ &@@@:      ?                  ..::    :^^^^:            " << std::endl <<
-          "       #&&##B@@#?@@@&@&&@@&@@@@@@@@@&  ?                   ..::.      ::^^           " << std::endl <<
-          "       ###&@@@J?@&@&@@@@@&@@@@@@@@@@@@.                    .::::        :::          " << std::endl <<
-          "        ##&@@@??&@@@@&@@&&@@@@&@@@@@@@@                     ::::          ::         " << std::endl <<
-          "        B@@@@@?G@@@@@&@@@@@@@@&@@@@&&@@#                     ::::          ::.       " << std::endl <<
-          "        @@@@@?@&@@@@@@@@##&&&&&&#B5B&&@&                      :::          :::Y      " << std::endl <<
-          "       B&@@@@?P#&@@&&@@@^BBGB BBBBB#@@@&                      :::           ::       " << std::endl <<
-          "         #&&# . P#&^&@@@@B##B B###B&@@@                        :::          YJ       " << std::endl <<
-          "         ###P ~    B#B@@@##B ~ ####&@@@                         :::                  " << std::endl <<
-          "        ?###   ~~  ##B@@@~~    B##B#@@@                         .::.                 " << std::endl <<
-          "         ###      ^^:#@@@B      ####@@&                         J.::                 " << std::endl <<
-          "         ##B       ####@@       5B##&@                           ^:::                " << std::endl <<
-          "         ##5       ####&@.#####  B##@&@@@@@@  J@@                 YBBB               " << std::endl <<
-          "         ##        ###B#&########B###@@@@@@@@@@@@@@@@@                               " << std::endl <<
-          "     #P####            @@@                                                           " << std::endl <<
-          "    #G#. ##         GB@@@:@                                                          " << std::endl <<
-          "                    B    B                                                           " << std::endl <<
-          "" << std::endl;
+      tools::msg_writer() << "\n    **** C64 CHAIN WALLET ****\n    WALLET LOCKED\n    PRESS PLAY ON TAPE\n";
     }
 
     bool started_background_sync = false;

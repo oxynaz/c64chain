@@ -219,7 +219,6 @@ namespace cryptonote {
       return 1;
     }
     // reset difficulty for solo mining to 100 million
-    if (nettype == MAINNET && HEIGHT <= 331170 + DIFFICULTY_WINDOW && HEIGHT >= 331170) { return 100000000; }
 
     static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small");
     assert(length <= DIFFICULTY_WINDOW);
@@ -334,7 +333,6 @@ namespace cryptonote {
       return 100;
     }
     assert(timestamps.size() == cumulative_difficulties.size() && timestamps.size() <= N+1 );
-    if (nettype == MAINNET && HEIGHT <= 63469 + 1) { return 100000069; }
     std::vector<uint64_t>TS(N+1);
     TS[0] = timestamps[0];
     for ( i = 1; i <= N; i++) {
@@ -384,16 +382,9 @@ namespace cryptonote {
     }
     assert(timestamps.size() == cumulative_difficulties.size() && timestamps.size() <= N+1 );
 
-    if (nettype == MAINNET && HEIGHT >= 81769 && HEIGHT < 81769 + N) { return 10000000; }
     assert(timestamps.size() == N+1);
 
     // hardcoding previously erroneously calculated difficulty entries
-    if(nettype == MAINNET && HEIGHT == 307686) return 25800000;
-    if(nettype == MAINNET && HEIGHT == 307692) return 1890000;
-    if(nettype == MAINNET && HEIGHT == 307735) return 17900000;
-    if(nettype == MAINNET && HEIGHT == 307742) return 21300000;
-    if(nettype == MAINNET && HEIGHT == 307750) return 10900000;
-    if(nettype == MAINNET && HEIGHT == 307766) return 2960000;
 
     uint64_t  i, this_timestamp(0), previous_timestamp(0);
     difficulty_type L(0), next_D, avg_D;

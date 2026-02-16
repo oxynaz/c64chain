@@ -482,15 +482,20 @@ namespace tools
     entry.timestamp = pd.m_timestamp;
     entry.amount = pd.m_amount;
     entry.amounts = pd.m_amounts;
-    entry.unlock_time = pd.m_unlock_time;
-    entry.locked = !m_wallet->is_transfer_unlocked(pd.m_unlock_time, pd.m_block_height);
+    // C64 CHAIN: for vesting coinbase (5 outputs), use worst-case unlock time (tier 4 = 90 days)
+    uint64_t effective_unlock = pd.m_unlock_time;
+    if (pd.m_coinbase && pd.m_amounts.size() >= 4) {
+      effective_unlock = pd.m_block_height + 25920; // tier 4: ~90 days
+    }
+    entry.unlock_time = effective_unlock;
+    entry.locked = !m_wallet->is_transfer_unlocked(effective_unlock, pd.m_block_height);
     entry.fee = pd.m_fee;
     entry.note = m_wallet->get_tx_note(pd.m_tx_hash);
     entry.type = pd.m_coinbase ? "block" : "in";
     entry.subaddr_index = pd.m_subaddr_index;
     entry.subaddr_indices.push_back(pd.m_subaddr_index);
     entry.address = m_wallet->get_subaddress_as_str(pd.m_subaddr_index);
-    set_confirmations(entry, m_wallet->get_blockchain_current_height(), m_wallet->get_last_block_reward(), pd.m_unlock_time);
+    set_confirmations(entry, m_wallet->get_blockchain_current_height(), m_wallet->get_last_block_reward(), effective_unlock);
   }
   //------------------------------------------------------------------------------------------------------------------------------
   void wallet_rpc_server::fill_transfer_entry(tools::wallet_rpc::transfer_entry &entry, const crypto::hash &txid, const tools::wallet2::confirmed_transfer_details &pd)

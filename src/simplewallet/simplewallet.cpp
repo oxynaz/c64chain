@@ -8990,7 +8990,12 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
       std::string note = m_wallet->get_tx_note(pd.m_tx_hash);
       std::string destination = m_wallet->get_subaddress_as_str({m_current_subaddress_account, pd.m_subaddr_index.minor});
       const std::string type = pd.m_coinbase ? tr("block") : tr("in");
-      const bool unlocked = m_wallet->is_transfer_unlocked(pd.m_unlock_time, pd.m_block_height);
+      // C64 CHAIN: worst-case vesting unlock for coinbase
+      uint64_t effective_unlock_cli = pd.m_unlock_time;
+      if (pd.m_coinbase && pd.m_amounts.size() >= 4) {
+        effective_unlock_cli = pd.m_block_height + 25920;
+      }
+      const bool unlocked = m_wallet->is_transfer_unlocked(effective_unlock_cli, pd.m_block_height);
       std::string locked_msg = "unlocked";
       if (!unlocked)
       {

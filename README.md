@@ -1,15 +1,31 @@
-# C64 Chain
+# C64 Chain — Privacy-First CPU-Mineable Cryptocurrency
 
-![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.6.0-blue)
+![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.7.0-blue)
+![License](https://img.shields.io/badge/license-GPLv3-green)
+![Algorithm](https://img.shields.io/badge/algorithm-rx%2Fc64-orange)
+![Mining](https://img.shields.io/badge/mining-CPU%20only-brightgreen)
+![Network](https://img.shields.io/badge/network-TESTNET-yellow)
 
 **C64 Chain** is a privacy-focused, CPU-mineable cryptocurrency inspired by the legendary Commodore 64.
-Forked from [Wownero](https://codeberg.org/wownero/wownero) (itself a fork of Monero).
+Forked from [Wownero](https://codeberg.org/wownero/wownero) (itself a fork of Monero), C64 Chain is a **new crypto project** featuring CryptoNote privacy, RandomX CPU mining, anti-dump vesting, and a unique retro computing aesthetic.
+
+**Keywords:** cryptocurrency, privacy coin, CPU mining, RandomX, CryptoNote, Monero fork, new crypto, altcoin, mineable coin, decentralized, open source blockchain, proof of work, PoW, crypto mining, solo mining, peer-to-peer, anonymous cryptocurrency, fair launch, no premine, community coin
 
 ## ⚠️ Current Status: TESTNET
 
 > **C64 Chain is currently in TESTNET phase.** The mainnet has not launched yet.
 > Coins mined on testnet will be transferred to mainnet at a reduced ratio (details TBD).
 > Early testnet miners will be rewarded for helping test the network.
+
+## Why C64 Chain?
+
+- **Fair launch** — no premine, no ICO, no VC funding, no insider allocation
+- **CPU mining only** — rx/c64 algorithm levels the playing field, anyone can mine from home
+- **Privacy by default** — built on CryptoNote/Monero technology with ring signatures, stealth addresses, and RingCT
+- **Anti-dump vesting** — block rewards unlock over 90 days, protecting price stability
+- **Audited codebase** — security audit completed with all critical fixes applied
+- **Active development** — regular updates, responsive team, transparent roadmap
+- **Unique identity** — Commodore 64-themed node and miner with retro TUI
 
 ## The C64 Spirit 🕹️
 
@@ -64,8 +80,27 @@ C64 Chain has undergone a code audit covering all modifications from the Wownero
 
 - **Dev fund consensus validation** — every node verifies that coinbase transactions contain exactly 5 outputs with correct 2% dev fund amount and 4x25% vesting split
 - **Vesting triple enforcement** — enforced at database, node consensus, and wallet level
-- **LWMA-1 difficulty algorithm** — responsive difficulty adjustment (Zawy's algorithm) protecting against hashrate manipulation
+- **LWMA-1 difficulty algorithm** — responsive difficulty adjustment (Zawy's algorithm) protecting against hashrate manipulation, activated at HF20 (block 2100)
 - **Clean codebase** — all legacy Wownero checkpoints, hardcoded difficulty values, and workarounds have been removed
+
+## Hard Fork History
+
+| HF | Block | Description |
+|----|-------|-------------|
+| HF17 | 0 (genesis) | RandomWOW mining algorithm |
+| HF18 | 2 | Fixed unlock time (288 blocks) |
+| HF19 | 3 | Tokenomics: 19.64M supply, vesting 4x25%, dev fund 2% |
+| HF20 | 2100 | LWMA-1 difficulty algorithm (faster adjustment, 145-block window) |
+
+### HF20 — LWMA-1 Difficulty (v0.7.0)
+
+At block 2100, C64 Chain activates the LWMA-1 difficulty algorithm (Zawy's Linearly Weighted Moving Average). This replaces the legacy CryptoNote difficulty calculation with a much more responsive algorithm:
+
+- **145-block window** (vs 720 blocks previously) — adjusts ~5x faster
+- **Better protection** against hashrate oscillation and timewarp attacks
+- **Smoother mining experience** — difficulty tracks actual hashrate more closely
+
+**All nodes must update to v0.7.0 before block 2100.**
 
 ## Features
 
@@ -77,15 +112,17 @@ C64 Chain has undergone a code audit covering all modifications from the Wownero
 - 🔒 Vesting on block rewards (4x25% staggered unlock over 90 days)
 - 🕶️ Privacy by default (Monero/CryptoNote-based)
 - 🚫 No premine, no ICO, no VC funding
+- 📊 LWMA-1 difficulty algorithm for responsive hashrate adjustment
+- 🔍 Security audited codebase
 
 ## Quick Start
 
 ### Option A: Pre-compiled binaries (Ubuntu 24.04 x86_64)
 
-Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.6.0):
+Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.7.0):
 ```bash
-wget https://github.com/oxynaz/c64chain/releases/download/v0.6.0/c64chain-v0.6.0-ubuntu24-x86_64.tar.gz
-tar xzf c64chain-v0.6.0-ubuntu24-x86_64.tar.gz
+wget https://github.com/oxynaz/c64chain/releases/download/v0.7.0/c64chain-v0.7.0-ubuntu24-x86_64.tar.gz
+tar xzf c64chain-v0.7.0-ubuntu24-x86_64.tar.gz
 chmod +x c64chaind c64wallet c64chain-wallet-rpc
 ```
 
@@ -107,6 +144,12 @@ sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
 sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 ```
 
+To make it permanent:
+```bash
+echo "net.ipv6.conf.all.disable_ipv6=1" | sudo tee -a /etc/sysctl.conf
+echo "net.ipv6.conf.default.disable_ipv6=1" | sudo tee -a /etc/sysctl.conf
+```
+
 #### 3. Build the node and wallet
 ```bash
 git clone https://github.com/oxynaz/c64chain.git
@@ -120,7 +163,7 @@ make -j$(nproc)
 ```bash
 ./bin/c64chaind --version
 ```
-Should display: `C64 Chain 'Genesis' (v0.6.0-release)`
+Should display: `C64 Chain 'Genesis' (v0.7.0-release)`
 
 This produces binaries in `build/bin/`:
 - `c64chaind` — the node daemon
@@ -131,7 +174,8 @@ This produces binaries in `build/bin/`:
 
 ```bash
 cd ~/c64chain
-git pull --tags
+git fetch --tags --force
+git pull
 rm -rf build
 mkdir build && cd build
 cmake ..
@@ -139,7 +183,7 @@ make -j$(nproc)
 ./bin/c64chaind --version
 ```
 
-> ⚠️ **Always use `git pull --tags`** (not just `git pull`). Without `--tags`, the version will display incorrectly.
+> ⚠️ **Always use `git fetch --tags --force`** before `git pull`. Without this, the version will display incorrectly (commit hash instead of `release`).
 > The `rm -rf build` ensures a clean build with no cached artifacts.
 > Always verify with `--version` after building — it should show `release`, not a commit hash.
 
@@ -294,8 +338,30 @@ Always run with `sudo` for best performance (huge pages). The miner features a C
 
 | Component | Binary | Source |
 |-----------|--------|--------|
-| Node + Wallet | [v0.6.0 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.6.0) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
+| Node + Wallet | [v0.7.0 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.7.0) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
 | Miner | [v0.2.1 Release](https://github.com/oxynaz/c64miner/releases/tag/v0.2.1) | [oxynaz/c64miner](https://github.com/oxynaz/c64miner) |
+
+## Comparison with Similar Projects
+
+| Feature | C64 Chain | Monero | Wownero |
+|---------|-----------|--------|---------|
+| Algorithm | rx/c64 | RandomX | RandomWOW |
+| Max supply | 19.64M | 18.4M + tail | Unlimited |
+| Block time | 5 min | 2 min | 5 min |
+| Dev fund | 2% consensus | Community funded | None |
+| Vesting | 90-day 4-tier | None | None |
+| Privacy | Full CryptoNote | Full CryptoNote | Full CryptoNote |
+| Difficulty algo | LWMA-1 (HF20) | LWMA-1 | LWMA-1 |
+
+## Roadmap
+
+- [x] Testnet launch
+- [x] Security audit & fixes (v0.6.0)
+- [x] HF20: LWMA-1 difficulty algorithm (v0.7.0)
+- [ ] Mining pool support
+- [ ] Mainnet launch
+- [ ] Exchange listings
+
 
 ## Community
 

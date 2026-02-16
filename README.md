@@ -1,6 +1,6 @@
 # C64 Chain
 
-![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.5.2-blue)
+![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.6.0-blue)
 
 **C64 Chain** is a privacy-focused, CPU-mineable cryptocurrency inspired by the legendary Commodore 64.
 Forked from [Wownero](https://codeberg.org/wownero/wownero) (itself a fork of Monero).
@@ -34,7 +34,7 @@ C64 Chain is built as a love letter to the Commodore 64, the best-selling home c
 | **50% mined in** | ~10 months |
 | **80% mined in** | ~2 years |
 | **96% mined in** | ~4 years |
-| **Dev fund** | 2% of each block reward |
+| **Dev fund** | 2% of each block reward (consensus-enforced) |
 | **Emission curve** | Smooth exponential decay (no halving cliffs) |
 
 The emission follows Monero's smooth curve formula: `reward = (supply_cap - already_mined) >> ESF`. This means block rewards decrease gradually with every block, unlike Bitcoin's sudden halvings. Combined with the 19.64M cap, this creates a fair and predictable monetary policy.
@@ -52,20 +52,29 @@ Every block reward is split into **4 equal outputs** with staggered unlock times
 
 The 2% dev fund unlocks after ~24 hours (288 blocks).
 
-Each coinbase transaction has **5 outputs**: 4 vesting outputs for the miner + 1 dev fund output. This is enforced at consensus level — blocks without proper vesting are rejected by the network.
+Each coinbase transaction has **5 outputs**: 4 vesting outputs for the miner + 1 dev fund output. Both vesting and the dev fund are enforced at consensus level — blocks without proper structure are rejected by the network.
 
 ### Why Vesting Matters
 
 Without vesting, early miners could accumulate large amounts of C64 and dump them as soon as the coin is listed on exchanges, crashing the price for everyone. The 90-day staggered unlock ensures that selling pressure is distributed over time, protecting the coin's value for all participants.
+
+## Security
+
+C64 Chain has undergone a code audit covering all modifications from the Wownero/Monero codebase. Key security features:
+
+- **Dev fund consensus validation** — every node verifies that coinbase transactions contain exactly 5 outputs with correct 2% dev fund amount and 4x25% vesting split
+- **Vesting triple enforcement** — enforced at database, node consensus, and wallet level
+- **LWMA-1 difficulty algorithm** — responsive difficulty adjustment (Zawy's algorithm) protecting against hashrate manipulation
+- **Clean codebase** — all legacy Wownero checkpoints, hardcoded difficulty values, and workarounds have been removed
 
 ## Features
 
 - 🖥️ Commodore 64-themed ncurses TUI built into the node
 - 📼 Datasette loading animation on startup
 - ⛏️ CPU-only mining (rx/c64 algorithm, RandomX variant)
-- 💰 2% dev fund for project development
+- 💰 2% dev fund for project development (consensus-enforced)
 - ⏱️ 5 minute block time
-- 🔒 Vesting on block rewards (4×25% staggered unlock over 90 days)
+- 🔒 Vesting on block rewards (4x25% staggered unlock over 90 days)
 - 🕶️ Privacy by default (Monero/CryptoNote-based)
 - 🚫 No premine, no ICO, no VC funding
 
@@ -73,10 +82,10 @@ Without vesting, early miners could accumulate large amounts of C64 and dump the
 
 ### Option A: Pre-compiled binaries (Ubuntu 24.04 x86_64)
 
-Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.5.2):
+Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.6.0):
 ```bash
-wget https://github.com/oxynaz/c64chain/releases/download/v0.5.2/c64chain-v0.5.2-ubuntu24-x86_64.tar.gz
-tar xzf c64chain-v0.5.2-ubuntu24-x86_64.tar.gz
+wget https://github.com/oxynaz/c64chain/releases/download/v0.6.0/c64chain-v0.6.0-ubuntu24-x86_64.tar.gz
+tar xzf c64chain-v0.6.0-ubuntu24-x86_64.tar.gz
 chmod +x c64chaind c64wallet c64chain-wallet-rpc
 ```
 
@@ -89,7 +98,7 @@ sudo apt install -y build-essential cmake pkg-config libboost-all-dev libssl-dev
     libzmq3-dev libsodium-dev libunwind-dev liblzma-dev libreadline-dev \
     libexpat1-dev libpgm-dev libhidapi-dev libusb-1.0-0-dev \
     libprotobuf-dev protobuf-compiler libudev-dev libncurses5-dev libncursesw5-dev \
-    libunbound-dev liblmdb-dev libminiupnpc-dev libuv1-dev git
+    libunbound-dev liblmdb-dev libminiupnpc-dev libuv1-dev git screen
 ```
 
 #### 2. Disable IPv6 (required for peer discovery)
@@ -111,7 +120,7 @@ make -j$(nproc)
 ```bash
 ./bin/c64chaind --version
 ```
-Should display: `C64 Chain 'Genesis' (v0.5.2-release)`
+Should display: `C64 Chain 'Genesis' (v0.6.0-release)`
 
 This produces binaries in `build/bin/`:
 - `c64chaind` — the node daemon
@@ -127,10 +136,12 @@ rm -rf build
 mkdir build && cd build
 cmake ..
 make -j$(nproc)
+./bin/c64chaind --version
 ```
 
 > ⚠️ **Always use `git pull --tags`** (not just `git pull`). Without `--tags`, the version will display incorrectly.
 > The `rm -rf build` ensures a clean build with no cached artifacts.
+> Always verify with `--version` after building — it should show `release`, not a commit hash.
 
 ## Run the node
 ```bash
@@ -144,6 +155,11 @@ The node will automatically connect to seed nodes and sync the blockchain.
 > screen -dmS node bash -c "cd ~/c64chain/build/bin && ./c64chaind --testnet --data-dir=\$HOME/.c64chain --log-level=1 --out-peers 64 --in-peers 128"
 > ```
 > View the TUI: `screen -r node` (detach with Ctrl+A then D)
+
+### Verify the node is running
+```bash
+curl -s http://127.0.0.1:29641/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"get_info"}' -H 'Content-Type: application/json' | python3 -c 'import sys,json;d=json.load(sys.stdin)["result"];print("Height:",d["height"],"Peers:",d["outgoing_connections_count"],"out /",d["incoming_connections_count"],"in")'
+```
 
 ### LAN Mining Setup
 
@@ -278,7 +294,7 @@ Always run with `sudo` for best performance (huge pages). The miner features a C
 
 | Component | Binary | Source |
 |-----------|--------|--------|
-| Node + Wallet | [v0.5.2 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.5.2) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
+| Node + Wallet | [v0.6.0 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.6.0) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
 | Miner | [v0.2.1 Release](https://github.com/oxynaz/c64miner/releases/tag/v0.2.1) | [oxynaz/c64miner](https://github.com/oxynaz/c64miner) |
 
 ## Community

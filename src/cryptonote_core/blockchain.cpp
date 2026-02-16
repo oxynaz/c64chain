@@ -885,7 +885,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block(const network_type net
   //    of doing 735 (DIFFICULTY_BLOCKS_COUNT).
   bool check = false;
   uint8_t version = get_current_hard_fork_version();
-  uint64_t difficulty_blocks_count = version >= 20 ? DIFFICULTY_BLOCKS_COUNT_V4 : version <= 19 && version >= 11 ? DIFFICULTY_BLOCKS_COUNT_V3 : version <= 10 && version >= 8 ? DIFFICULTY_BLOCKS_COUNT_V2 : DIFFICULTY_BLOCKS_COUNT;
+  uint64_t difficulty_blocks_count = version >= 20 ? DIFFICULTY_BLOCKS_COUNT_V4 : version <= 17 && version >= 11 ? DIFFICULTY_BLOCKS_COUNT_V3 : version <= 10 && version >= 8 ? DIFFICULTY_BLOCKS_COUNT_V2 : DIFFICULTY_BLOCKS_COUNT;
   if (m_reset_timestamps_and_difficulties_height)
     m_timestamps_and_difficulties_height = 0;
   if (m_timestamps_and_difficulties_height != 0 && ((height - m_timestamps_and_difficulties_height) == 1) && m_timestamps.size() >= difficulty_blocks_count)
@@ -931,7 +931,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block(const network_type net
   difficulty_type diff;
   if (version >= 20) {
     diff = next_difficulty_v6(timestamps, difficulties, target, HEIGHT, m_nettype);
-  } else if (version <= 19 && version >= 11) {
+  } else if (version <= 17 && version >= 11) {
     diff = next_difficulty_v5(timestamps, difficulties, HEIGHT, m_nettype);
   } else if (version == 10) {
     diff = next_difficulty_v4(timestamps, difficulties, HEIGHT, m_nettype);
@@ -979,7 +979,7 @@ size_t Blockchain::recalculate_difficulties(boost::optional<uint64_t> start_heig
   std::vector<uint64_t> timestamps;
   std::vector<difficulty_type> difficulties;
   uint8_t version = get_current_hard_fork_version();
-  uint64_t difficulty_blocks_count = version >= 20 ? DIFFICULTY_BLOCKS_COUNT_V4 : version <= 19 && version >= 11 ? DIFFICULTY_BLOCKS_COUNT_V3 : version <= 10 && version >= 8 ? DIFFICULTY_BLOCKS_COUNT_V2 : DIFFICULTY_BLOCKS_COUNT;
+  uint64_t difficulty_blocks_count = version >= 20 ? DIFFICULTY_BLOCKS_COUNT_V4 : version <= 17 && version >= 11 ? DIFFICULTY_BLOCKS_COUNT_V3 : version <= 10 && version >= 8 ? DIFFICULTY_BLOCKS_COUNT_V2 : DIFFICULTY_BLOCKS_COUNT;
   timestamps.reserve(difficulty_blocks_count + 1);
   difficulties.reserve(difficulty_blocks_count + 1);
   if (start_height > 1)
@@ -1003,7 +1003,7 @@ size_t Blockchain::recalculate_difficulties(boost::optional<uint64_t> start_heig
     difficulty_type recalculated_diff;
     if (version >= 20) {
       recalculated_diff = next_difficulty_v6(timestamps, difficulties, target, HEIGHT, m_nettype);
-    } else if (version <= 19 && version >= 11) {
+    } else if (version <= 17 && version >= 11) {
       recalculated_diff = next_difficulty_v5(timestamps, difficulties, HEIGHT, m_nettype);
     } else if (version == 10) {
       recalculated_diff = next_difficulty_v4(timestamps, difficulties, HEIGHT, m_nettype);
@@ -1264,7 +1264,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
   std::vector<uint64_t> timestamps;
   std::vector<difficulty_type> cumulative_difficulties;
   uint8_t version = get_current_hard_fork_version();
-  uint64_t difficulty_blocks_count = version >= 20 ? DIFFICULTY_BLOCKS_COUNT_V4 : version <= 19 && version >= 11 ? DIFFICULTY_BLOCKS_COUNT_V3 : version <= 10 && version >= 8 ? DIFFICULTY_BLOCKS_COUNT_V2 : DIFFICULTY_BLOCKS_COUNT;
+  uint64_t difficulty_blocks_count = version >= 20 ? DIFFICULTY_BLOCKS_COUNT_V4 : version <= 17 && version >= 11 ? DIFFICULTY_BLOCKS_COUNT_V3 : version <= 10 && version >= 8 ? DIFFICULTY_BLOCKS_COUNT_V2 : DIFFICULTY_BLOCKS_COUNT;
 
   // if the alt chain isn't long enough to calculate the difficulty target
   // based on its blocks alone, need to get more blocks from the main chain
@@ -1324,7 +1324,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
   difficulty_type next_diff;
   if (version >= 20) {
     next_diff = next_difficulty_v6(timestamps, cumulative_difficulties, target, HEIGHT, m_nettype);
-  } else if (version <= 19 && version >= 11) {
+  } else if (version <= 17 && version >= 11) {
     next_diff = next_difficulty_v5(timestamps, cumulative_difficulties, HEIGHT, m_nettype);
   } else if (version == 10) {
     next_diff = next_difficulty_v4(timestamps, cumulative_difficulties, HEIGHT, m_nettype);

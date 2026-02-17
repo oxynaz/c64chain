@@ -1,6 +1,6 @@
 # C64 Chain — Privacy-First CPU-Mineable Cryptocurrency
 
-![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.7.0-blue)
+![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.8.0-blue)
 ![License](https://img.shields.io/badge/license-GPLv3-green)
 ![Algorithm](https://img.shields.io/badge/algorithm-rx%2Fc64-orange)
 ![Mining](https://img.shields.io/badge/mining-CPU%20only-brightgreen)
@@ -92,7 +92,7 @@ C64 Chain has undergone a code audit covering all modifications from the Wownero
 | HF19 | 3 | Tokenomics: 19.64M supply, vesting 4x25%, dev fund 2% |
 | HF20 | 2100 | LWMA-1 difficulty algorithm (faster adjustment, 145-block window) |
 
-### HF20 — LWMA-1 Difficulty (v0.7.0)
+### HF20 — LWMA-1 Difficulty (v0.7.0+)
 
 At block 2100, C64 Chain activates the LWMA-1 difficulty algorithm (Zawy's Linearly Weighted Moving Average). This replaces the legacy CryptoNote difficulty calculation with a much more responsive algorithm:
 
@@ -100,7 +100,7 @@ At block 2100, C64 Chain activates the LWMA-1 difficulty algorithm (Zawy's Linea
 - **Better protection** against hashrate oscillation and timewarp attacks
 - **Smoother mining experience** — difficulty tracks actual hashrate more closely
 
-**All nodes must update to v0.7.0 before block 2100.**
+**All nodes must run v0.8.0 or later.**
 
 ## Features
 
@@ -119,10 +119,10 @@ At block 2100, C64 Chain activates the LWMA-1 difficulty algorithm (Zawy's Linea
 
 ### Option A: Pre-compiled binaries (Ubuntu 24.04 x86_64)
 
-Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.7.0):
+Download from [Releases](https://github.com/oxynaz/c64chain/releases/tag/v0.8.0):
 ```bash
-wget https://github.com/oxynaz/c64chain/releases/download/v0.7.0/c64chain-v0.7.0-ubuntu24-x86_64.tar.gz
-tar xzf c64chain-v0.7.0-ubuntu24-x86_64.tar.gz
+wget https://github.com/oxynaz/c64chain/releases/download/v0.8.0/c64chain-v0.8.0-ubuntu24-x86_64.tar.gz
+tar xzf c64chain-v0.8.0-ubuntu24-x86_64.tar.gz
 chmod +x c64chaind c64wallet c64chain-wallet-rpc
 ```
 
@@ -163,7 +163,7 @@ make -j$(nproc)
 ```bash
 ./bin/c64chaind --version
 ```
-Should display: `C64 Chain 'Genesis' (v0.7.0-release)`
+Should display: `C64 Chain 'Genesis' (v0.8.0-release)`
 
 This produces binaries in `build/bin/`:
 - `c64chaind` — the node daemon
@@ -338,7 +338,7 @@ Always run with `sudo` for best performance (huge pages). The miner features a C
 
 | Component | Binary | Source |
 |-----------|--------|--------|
-| Node + Wallet | [v0.7.0 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.7.0) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
+| Node + Wallet | [v0.8.0 Release](https://github.com/oxynaz/c64chain/releases/tag/v0.8.0) | [oxynaz/c64chain](https://github.com/oxynaz/c64chain) |
 | Miner | [v0.2.1 Release](https://github.com/oxynaz/c64miner/releases/tag/v0.2.1) | [oxynaz/c64miner](https://github.com/oxynaz/c64miner) |
 
 ## Comparison with Similar Projects
@@ -357,7 +357,7 @@ Always run with `sudo` for best performance (huge pages). The miner features a C
 
 - [x] Testnet launch
 - [x] Security audit & fixes (v0.6.0)
-- [x] HF20: LWMA-1 difficulty algorithm (v0.7.0)
+- [x] HF20: LWMA-1 difficulty algorithm (v0.7.0), dev fund crypto verification (v0.8.0)
 - [ ] Mining pool support
 - [ ] Mainnet launch
 - [ ] Exchange listings

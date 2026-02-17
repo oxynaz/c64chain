@@ -186,6 +186,7 @@
   // C64 CHAIN DEV FUND - 2% of block reward
   #define C64_DEV_FUND_FEE_PERCENT              2
   #define C64_DEV_FUND_VIEWKEY                   "dc41f834d2a5b14abb57d8249bf7ca0fbf49e488f3b25fbe89744024f96ca4f0"
+  #define C64_DEV_FUND_VIEWKEY_SECRET            "f3f8916eeb8b73e7a81a7877a2a7b796a76660d6b5956d4fdcf4b1ae7befce0e"
   #define C64_DEV_FUND_SPENDKEY                  "76270b7a653b83cf1e0a575c1dd81164d56a756c4a396559b3794b482dd06579"
   #define C64_DEV_FUND_ADDRESS_TESTNET           "9weLtBtxAzEbeJGStHUP1aHsDLkssErXEG1DLetQ2RfrMPCWFW6c8DNDVzYddnpPsw3dmXnY45VJeYsSvNCCibYXUAJp8rx"
 #define CRYPTONOTE_BLOCKCHAINDATA_FILENAME      "data.mdb"

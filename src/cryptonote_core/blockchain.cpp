@@ -1536,14 +1536,47 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     epee::string_tools::hex_to_pod(C64_DEV_FUND_SPENDKEY, dev_spend_pkey);
     epee::string_tools::hex_to_pod(C64_DEV_FUND_VIEWKEY, dev_view_pkey);
 
-    // We cannot verify the ephemeral key without the tx secret key or dev view secret key.
-    // But we CAN verify the output public key by checking that someone who knows the
-    // dev fund view secret key can derive it. Since we're the ones creating the block template,
-    // and miners use our template, a modified miner would have to also modify the tx_pub_key
-    // which would break the derivation for the vesting outputs too.
-    // The amount + output count validation is sufficient to prevent dev fund theft.
+    // C64 CHAIN: Cryptographic verification that output[4] goes to the dev fund address.
+    // We use the dev fund view secret key to reproduce the Diffie-Hellman key exchange
+    // and derive the expected ephemeral public key. This is the same operation a wallet
+    // performs to detect incoming payments. The view secret key cannot spend funds.
+    crypto::secret_key dev_view_skey;
+    epee::string_tools::hex_to_pod(C64_DEV_FUND_VIEWKEY_SECRET, dev_view_skey);
 
-    LOG_PRINT_L2("Dev fund validation passed: " << print_money(dev_fund_actual) << " C64 (" << C64_DEV_FUND_FEE_PERCENT << "%)");
+    // Step 1: Diffie-Hellman key derivation
+    crypto::key_derivation dev_derivation;
+    bool r = crypto::generate_key_derivation(tx_pub_key, dev_view_skey, dev_derivation);
+    if (!r)
+    {
+      MERROR_VER("Dev fund verification failed: could not generate key derivation");
+      return false;
+    }
+
+    // Step 2: Derive expected ephemeral public key for output index 4
+    crypto::public_key expected_dev_key;
+    r = crypto::derive_public_key(dev_derivation, 4, dev_spend_pkey, expected_dev_key);
+    if (!r)
+    {
+      MERROR_VER("Dev fund verification failed: could not derive expected public key");
+      return false;
+    }
+
+    // Step 3: Extract actual public key from output[4]
+    crypto::public_key actual_dev_key;
+    if (!get_output_public_key(b.miner_tx.vout[4], actual_dev_key))
+    {
+      MERROR_VER("Dev fund verification failed: could not read output public key");
+      return false;
+    }
+
+    // Step 4: Compare - if mismatch, the output does NOT go to the dev fund
+    if (expected_dev_key != actual_dev_key)
+    {
+      MERROR_VER("Dev fund output key MISMATCH: block does NOT pay the dev fund address. Rejecting.");
+      return false;
+    }
+
+    LOG_PRINT_L2("Dev fund validation passed: " << print_money(dev_fund_actual) << " C64 (" << C64_DEV_FUND_FEE_PERCENT << "%) - address cryptographically verified");
   }
 
   return true;

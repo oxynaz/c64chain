@@ -1,3 +1,11 @@
+# 🚀 C64 CHAIN MAINNET IS LIVE!
+
+**Le mainnet C64 Chain est désormais en production.**
+
+**👉 [Accéder au repo mainnet : c64chain-mainnet](https://github.com/oxynaz/c64chain-mainnet)**
+
+---
+
 # C64 Chain — Privacy-First CPU-Mineable Cryptocurrency
 
 ![C64 Chain](https://img.shields.io/badge/C64_Chain-v0.8.0-blue)
